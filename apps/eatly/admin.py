@@ -45,9 +45,10 @@ class User(ModelAdmin):
     )
     ordering = (
         "-name",
+        #"-created_at",
     )
     list_filter = (
-        "name",
+        "role",
     )
     readonly_fields = (
         "created_at",

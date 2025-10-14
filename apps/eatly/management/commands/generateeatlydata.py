@@ -71,7 +71,7 @@ class Command(BaseCommand):
         for i in range (user_count):
             name= f"{choice(self.NAMES)} {i+1}"
             email = f" user{i+1}@{choice(self.EMAIL_DOMAINS)}"
-            role = "customer"
+            role = "owner"
 
             created_users.append(
                 User(
@@ -170,14 +170,14 @@ class Command(BaseCommand):
         Comman for entry point
         """
         start_time: datetime= datetime.now()
-        self.__generate_users(user_count=100)
+        self.__generate_users(user_count=10)
         self.stdout.write(
             "The whole process to generate users took: {} seconds".format(
                 (datetime.now() - start_time).total_seconds()
             )
         )
 
-        self.__generate_restaurant(restaurant_count=100)
+        self.__generate_restaurant(restaurant_count=20)
         self.stdout.write(
             "The whole process to generate restaurants took: {} seconds".format(
                 (datetime.now() - start_time).total_seconds()
