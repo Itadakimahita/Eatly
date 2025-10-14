@@ -1,32 +1,33 @@
 # Python modules
-from typing import Any
+from typing import Any, List, Dict, Tuple, Optional
 from random import choice, choices
-from django.utils import timezone
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # Django modules
+from django.utils import timezone
 from django.core.management.base import BaseCommand
 from django.contrib.auth.hashers import make_password
-from django.contrib.auth.models import User
-from django.db.models import QuerySet
 
 # Project modules
 from apps.eatly.models import Restaurant, User
 
-class Command(BaseCommand):
-    help = "Generate tasks data for testing purposes"
 
-    EMAIL_DOMAINS = (
+class Command(BaseCommand):
+    """Generate users and restaurant data for testing purposes."""
+
+    help = "Generate users and restaurants data for testing."
+
+    EMAIL_DOMAINS: Tuple[str, ...] = (
         "example.com",
         "test.com",
         "sample.org",
         "demo.net",
         "mail.com",
-        "kbtu.kz"
-        "gmail.com"
+        "kbtu.kz",
+        "gmail.com",
     )
 
-    NAMES = (
+    NAMES: Tuple[str, ...] = (
         "Alice",
         "Bob",
         "Charlie",
@@ -36,7 +37,7 @@ class Command(BaseCommand):
         "Grace",
         "Heidi",
         "Ivan",
-        "Judy"
+        "Judy",
         "Oliver",
         "Jacob",
         "Lucas",
@@ -60,46 +61,13 @@ class Command(BaseCommand):
         "Dylan",
     )
 
-    def __generate_users(self, user_count:int =100) -> None:
-        """
-        Generating users 
-        """
-        created_users: list[User] = []
-        users_before: int = User.objects.count()
-        hashed_password = make_password(password="12345")
-
-        for i in range (user_count):
-            name= f"{choice(self.NAMES)} {i+1}"
-            email = f" user{i+1}@{choice(self.EMAIL_DOMAINS)}"
-            role = "customer"
-
-            created_users.append(
-                User(
-                    name=name,
-                    email=email,
-                    hashed_password= hashed_password,
-                    role=role,
-                    created_at=timezone.now(),
-                    updated_at=timezone.now(),
-                )
-            )
-        User.objects.bulk_create(created_users, ignore_conflicts=True)
-        users_after: int = User.objects.count()
-
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"Created {users_after - users_before} users."
-            )
-        )
-
-
-
-    RESTAURANT_NAMES = (
-        "Saffron", "Olive", "Spice", "Grill", "Garden", "Bistro", "Table", "Corner",
-        "Kitchen", "Taste", "Vibe", "Fusion", "Sky", "Fire", "Salt", "Herb", "Crust", "Fork",
+    RESTAURANT_NAMES: Tuple[str, ...] = (
+        "Saffron", "Olive", "Spice", "Grill", "Garden", "Bistro", "Table",
+        "Corner", "Kitchen", "Taste", "Vibe", "Fusion", "Sky", "Fire", "Salt",
+        "Herb", "Crust", "Fork",
     )
 
-    DESCRIPTIONS = (
+    DESCRIPTIONS: Tuple[str, ...] = (
         "Cozy place with a modern twist.",
         "Authentic dishes prepared with love.",
         "Perfect for family dinners and friends.",
@@ -112,7 +80,7 @@ class Command(BaseCommand):
         "For those who love good taste and good mood.",
     )
 
-    IMAGES = (
+    IMAGES: Tuple[str, ...] = (
         "https://picsum.photos/seed/restaurant1/800/600",
         "https://picsum.photos/seed/restaurant2/800/600",
         "https://picsum.photos/seed/restaurant3/800/600",
@@ -120,41 +88,77 @@ class Command(BaseCommand):
         "https://picsum.photos/seed/restaurant5/800/600",
     )
 
-    ADDRESSES_STR = (
+    ADDRESSES_STR: Tuple[str, ...] = (
         "Abay Ave", "Dostyk St", "Al-Farabi Ave", "Tole Bi St", "Satpaev St",
-        "Nazarbayev Ave", "Seifullin Ave", "Timiryazev St", "Kabanbay Batyr St"
+        "Nazarbayev Ave", "Seifullin Ave", "Timiryazev St", "Kabanbay Batyr St",
     )
 
-    ADDRESSES_NUM = (
-        "10", "23A", "47", "52", "77B", "91", "108", "130", "200", "315"
+    ADDRESSES_NUM: Tuple[str, ...] = (
+        "10", "23A", "47", "52", "77B", "91", "108", "130", "200", "315",
     )
-        
-    def __generate_restaurant(self, restaurant_count:int = 100) -> None:
-        """
-        generating restaurants
-        """
 
-        owners= list(User.objects.filter(role="owner"))
-        created_restaurants = []
-        restaurants_before= Restaurant.objects.count()
-        for i in range(restaurant_count):
+    def __generate_users(self, user_count: int = 100) -> None:
+        """Generate test users."""
+        created_users: List[User] = []
+        users_before: int = User.objects.count()
+        hashed_password: str = make_password(password="12345")
+
+        for i in range(user_count):
+            name: str = f"{choice(self.NAMES)} {i + 1}"
+            email: str = f"user{i + 1}@{choice(self.EMAIL_DOMAINS)}"
+            role: str = "customer"
+
+            created_users.append(
+                User(
+                    name=name,
+                    email=email,
+                    hashed_password=hashed_password,
+                    role=role,
+                    created_at=timezone.now(),
+                    updated_at=timezone.now(),
+                )
+            )
+
+        User.objects.bulk_create(created_users, ignore_conflicts=True)
+        users_after: int = User.objects.count()
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Created {users_after - users_before} users."
+            )
+        )
+
+    def __generate_restaurants(self, restaurant_count: int = 100) -> None:
+        """Generate test restaurants."""
+        owners: List[User] = list(User.objects.filter(role="owner"))
+        created_restaurants: List[Restaurant] = []
+        restaurants_before: int = Restaurant.objects.count()
+
+        for _ in range(restaurant_count):
             name: str = " ".join(choices(self.RESTAURANT_NAMES, k=2)).capitalize()
-            description = choice(self.DESCRIPTIONS)
-            image_url = choice(self.IMAGES)
-            address = f"{choice(self.ADDRESSES_STR)}, {choice(self.ADDRESSES_NUM)}"
-            address_link = f" https://maps.google.com/?q={address.replace(' ','+')}"
-            owner = choice(owners)
+            description: str = choice(self.DESCRIPTIONS)
+            image_url: str = choice(self.IMAGES)
+            address: str = (
+                f"{choice(self.ADDRESSES_STR)}, {choice(self.ADDRESSES_NUM)}"
+            )
+            address_link: str = (
+                f"https://maps.google.com/?q={address.replace(' ', '+')}"
+            )
+            owner: Optional[User] = choice(owners) if owners else None
+
             created_restaurants.append(
                 Restaurant(
                     name=name,
                     description=description,
                     image_url=image_url,
                     address=address,
+                    address_link=address_link,
                     owner=owner,
                     created_at=timezone.now(),
                     updated_at=timezone.now(),
                 )
             )
+
         Restaurant.objects.bulk_create(created_restaurants, ignore_conflicts=True)
         restaurants_after: int = Restaurant.objects.count()
 
@@ -164,23 +168,22 @@ class Command(BaseCommand):
             )
         )
 
+    def handle(
+        self,
+        *args: Tuple[Any, ...],
+        **kwargs: Dict[str, Any],
+    ) -> None:
+        """Entry point for command execution."""
+        start_time: datetime = datetime.now()
 
-    def handle(self, *args:tuple[Any, ...], **kwargs:dict[str, Any])-> None:
-        """
-        Comman for entry point
-        """
-        start_time: datetime= datetime.now()
         self.__generate_users(user_count=100)
         self.stdout.write(
-            "The whole process to generate users took: {} seconds".format(
-                (datetime.now() - start_time).total_seconds()
-            )
+            f"Generated users in "
+            f"{(datetime.now() - start_time).total_seconds()} seconds."
         )
 
-        self.__generate_restaurant(restaurant_count=100)
+        self.__generate_restaurants(restaurant_count=100)
         self.stdout.write(
-            "The whole process to generate restaurants took: {} seconds".format(
-                (datetime.now() - start_time).total_seconds()
-            )
+            f"Generated restaurants in "
+            f"{(datetime.now() - start_time).total_seconds()} seconds."
         )
-
