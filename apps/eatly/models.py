@@ -7,8 +7,10 @@ from django.db import models
 from django.utils import timezone
 from django.db.models import QuerySet
 
+from apps.eatly.abstract_model import AbstractBaseModel
 
-class User(models.Model):
+
+class User(AbstractBaseModel):
     """User model representing customers and restaurant owners."""
 
     ROLE_CHOICES: ClassVar[list[tuple[str, str]]] = [
@@ -27,7 +29,7 @@ class User(models.Model):
         return f"{self.name} ({self.role})"
 
 
-class Restaurant(models.Model):
+class Restaurant(AbstractBaseModel):
     """Restaurant model."""
 
     name: str = models.CharField(max_length=255)
@@ -38,8 +40,6 @@ class Restaurant(models.Model):
     owner: User = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='restaurants'
     )
-    created_at: timezone.datetime = models.DateTimeField(default=timezone.now)
-    updated_at: timezone.datetime = models.DateTimeField(default=timezone.now)
 
     categories: models.ManyToManyField = models.ManyToManyField(
         'Category',
@@ -92,7 +92,7 @@ class DeliveryLink(models.Model):
         return f"{self.platform_name} ({self.restaurant.name})"
 
 
-class Post(models.Model):
+class Post(AbstractBaseModel):
     """Restaurant posts for promotions or announcements."""
 
     restaurant: Restaurant = models.ForeignKey(
@@ -101,14 +101,12 @@ class Post(models.Model):
     title: str = models.CharField(max_length=255)
     description: Optional[str] = models.TextField(blank=True, null=True)
     image_url: Optional[str] = models.URLField(blank=True, null=True)
-    created_at: timezone.datetime = models.DateTimeField(default=timezone.now)
-    updated_at: timezone.datetime = models.DateTimeField(default=timezone.now)
 
     def __str__(self) -> str:
         return f"{self.title} ({self.restaurant.name})"
 
 
-class Comment(models.Model):
+class Comment(AbstractBaseModel):
     """User comments on posts."""
 
     user: User = models.ForeignKey(
@@ -118,8 +116,6 @@ class Comment(models.Model):
         Post, on_delete=models.CASCADE, related_name='comments'
     )
     content: str = models.TextField()
-    created_at: timezone.datetime = models.DateTimeField(default=timezone.now)
-    updated_at: timezone.datetime = models.DateTimeField(default=timezone.now)
 
     def __str__(self) -> str:
         return f"{self.user.name}: {self.content[:25]}..."
