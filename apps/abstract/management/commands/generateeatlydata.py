@@ -9,7 +9,7 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth.hashers import make_password
 
 # Project modules
-from apps.eatly.models import Restaurant, User
+from apps.abstract.models import Restaurant, User
 
 
 class Command(BaseCommand):
@@ -17,7 +17,7 @@ class Command(BaseCommand):
 
     help = "Generate users and restaurants data for testing."
 
-    EMAIL_DOMAINS: Tuple[str, ...] = (
+    EMAIL_DOMAINS = (
         "example.com",
         "test.com",
         "sample.org",
@@ -27,7 +27,7 @@ class Command(BaseCommand):
         "gmail.com",
     )
 
-    NAMES: Tuple[str, ...] = (
+    NAMES = (
         "Alice",
         "Bob",
         "Charlie",
@@ -61,13 +61,13 @@ class Command(BaseCommand):
         "Dylan",
     )
 
-    RESTAURANT_NAMES: Tuple[str, ...] = (
+    RESTAURANT_NAMES = (
         "Saffron", "Olive", "Spice", "Grill", "Garden", "Bistro", "Table",
         "Corner", "Kitchen", "Taste", "Vibe", "Fusion", "Sky", "Fire", "Salt",
         "Herb", "Crust", "Fork",
     )
 
-    DESCRIPTIONS: Tuple[str, ...] = (
+    DESCRIPTIONS = (
         "Cozy place with a modern twist.",
         "Authentic dishes prepared with love.",
         "Perfect for family dinners and friends.",
@@ -80,7 +80,7 @@ class Command(BaseCommand):
         "For those who love good taste and good mood.",
     )
 
-    IMAGES: Tuple[str, ...] = (
+    IMAGES = (
         "https://picsum.photos/seed/restaurant1/800/600",
         "https://picsum.photos/seed/restaurant2/800/600",
         "https://picsum.photos/seed/restaurant3/800/600",
@@ -88,12 +88,12 @@ class Command(BaseCommand):
         "https://picsum.photos/seed/restaurant5/800/600",
     )
 
-    ADDRESSES_STR: Tuple[str, ...] = (
+    ADDRESSES_STR = (
         "Abay Ave", "Dostyk St", "Al-Farabi Ave", "Tole Bi St", "Satpaev St",
         "Nazarbayev Ave", "Seifullin Ave", "Timiryazev St", "Kabanbay Batyr St",
     )
 
-    ADDRESSES_NUM: Tuple[str, ...] = (
+    ADDRESSES_NUM = (
         "10", "23A", "47", "52", "77B", "91", "108", "130", "200", "315",
     )
 

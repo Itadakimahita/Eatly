@@ -7,22 +7,12 @@ from django.core.handlers.wsgi import WSGIRequest
 from django.db.models import QuerySet
 from django.utils.html import format_html
 from unfold.admin import ModelAdmin
+import unfold
 
 # Project models
-from .models import (
-    User,
-    Restaurant,
-    Category,
-    RestaurantCategory,
-    DeliveryLink,
-    Post,
-    Comment,
-    UserLike,
-    UserSubscription,
-    Notification,
-)
-
-import unfold
+from apps.user.models import User
+from apps.restaurant.models import Restaurant, Category, RestaurantCategory, DeliveryLink
+from apps.services.models import Post, Comment, UserLike, UserSubscription, Notification
 
 
 @admin.register(User)
@@ -42,7 +32,7 @@ class UserAdmin(ModelAdmin):
             f'{obj.role.capitalize()}</span>'
         )
 
-    list_display: Tuple[str, ...] = (
+    list_display = (
         "name",
         "email",
         "colored_role",
@@ -50,19 +40,16 @@ class UserAdmin(ModelAdmin):
         "updated_at",
     )
 
-    search_fields: Tuple[str, ...] = ("name", "email")
+    search_fields = ("name", "email")
 
     list_per_page: int = 20
-    list_display_links: Tuple[str, ...] = ("name",)
-    ordering: Tuple[str, ...] = ("-name",)
-    list_filter: Tuple[str, ...] = ("name",)
-    readonly_fields: Tuple[str, ...] = ("created_at",)
+    list_display_links = ("name",)
+    ordering = ("-name",)
+    list_filter = ("name",)
+    readonly_fields = ("created_at",)
     save_on_top: bool = True
 
-    fieldsets: Tuple[
-        Tuple[str, Dict[str, Tuple[str, ...]]],
-        ...
-    ] = (
+    fieldsets = (
         (
             "User Information",
             {
@@ -104,7 +91,7 @@ class UserAdmin(ModelAdmin):
 class RestaurantAdmin(ModelAdmin):
     """Restaurant admin configuration."""
 
-    list_display: Tuple[str, ...] = (
+    list_display = (
         "name",
         "description",
         "address",
@@ -112,82 +99,82 @@ class RestaurantAdmin(ModelAdmin):
         "created_at",
         "updated_at",
     )
-    search_fields: Tuple[str, ...] = ("name", "address")
+    search_fields = ("name", "address")
 
 
 @admin.register(Category)
 class CategoryAdmin(ModelAdmin):
     """Category admin configuration."""
 
-    list_display: Tuple[str, ...] = ("name", "description", "created_at")
-    search_fields: Tuple[str, ...] = ("name",)
+    list_display = ("name", "description", "created_at")
+    search_fields = ("name",)
 
 
 @admin.register(RestaurantCategory)
 class RestaurantCategoryAdmin(ModelAdmin):
     """RestaurantCategory admin configuration."""
 
-    list_display: Tuple[str, ...] = ("restaurant", "category", "created_at")
-    search_fields: Tuple[str, ...] = ("restaurant", "category")
+    list_display = ("restaurant", "category", "created_at")
+    search_fields = ("restaurant", "category")
 
 
 @admin.register(DeliveryLink)
 class DeliveryLinkAdmin(ModelAdmin):
     """DeliveryLink admin configuration."""
 
-    list_display: Tuple[str, ...] = ("restaurant", "platform_name")
-    search_fields: Tuple[str, ...] = ("restaurant", "platform_name")
+    list_display = ("restaurant", "platform_name")
+    search_fields = ("restaurant", "platform_name")
 
 
 @admin.register(Post)
 class PostAdmin(ModelAdmin):
     """Post admin configuration."""
 
-    list_display: Tuple[str, ...] = (
+    list_display = (
         "restaurant",
         "title",
         "description",
         "created_at",
         "updated_at",
     )
-    search_fields: Tuple[str, ...] = ("restaurant", "title")
+    search_fields = ("restaurant", "title")
 
 
 @admin.register(Comment)
 class CommentAdmin(ModelAdmin):
     """Comment admin configuration."""
 
-    list_display: Tuple[str, ...] = (
+    list_display = (
         "user",
         "post",
         "content",
         "created_at",
         "updated_at",
     )
-    search_fields: Tuple[str, ...] = ("user", "post", "content")
+    search_fields = ("user", "post", "content")
 
 
 @admin.register(UserLike)
 class UserLikeAdmin(ModelAdmin):
     """UserLike admin configuration."""
 
-    list_display: Tuple[str, ...] = ("user", "discount_post", "liked_at")
-    search_fields: Tuple[str, ...] = ("user",)
+    list_display = ("user", "discount_post", "liked_at")
+    search_fields = ("user",)
 
 
 @admin.register(UserSubscription)
 class UserSubscriptionAdmin(ModelAdmin):
     """UserSubscription admin configuration."""
 
-    list_display: Tuple[str, ...] = ("user", "restaurant", "subscribed_at")
-    search_fields: Tuple[str, ...] = ("user", "restaurant")
+    list_display = ("user", "restaurant", "subscribed_at")
+    search_fields = ("user", "restaurant")
 
 
 @admin.register(Notification)
 class NotificationAdmin(ModelAdmin):
     """Notification admin configuration."""
 
-    list_display: Tuple[str, ...] = (
+    list_display = (
         "user",
         "title",
         "message",
@@ -195,7 +182,7 @@ class NotificationAdmin(ModelAdmin):
         "created_at",
         "expires_at",
     )
-    search_fields: Tuple[str, ...] = ("user", "title")
+    search_fields = ("user", "title")
 
 
 # --- Admin site info ---
