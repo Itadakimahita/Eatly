@@ -10,6 +10,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ROOT_URLCONF = 'settings.urls'
 WSGI_APPLICATION = 'settings.wsgi.application'
 ASGI_APPLICATION = 'settings.wsgi.application'
+AUTH_USER_MODEL = 'user.User'
 
 # ------------------------
 # Apps
@@ -30,6 +31,10 @@ DJANGO_AND_THIRD_PARTY_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'drf_spectacular',
+    'django_extensions',
 ]
 PROJECT_APPS = [
     "apps.abstract",
