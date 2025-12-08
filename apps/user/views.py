@@ -13,6 +13,7 @@ from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST, HTTP_405_ME
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import action
 
+from apps.restaurant.serializers import RestaurantCreateSerializer
 from apps.user.models import CustomUser
 from apps.user.serializers import UserListSerializer, UserLoginSerializer, UserRegisterSerializer, UserLoginResponseSerializer, UserSerializer
 
@@ -208,3 +209,48 @@ class UserViewSet(ViewSet):
             data={"detail": "User not found."},
             status=HTTP_400_BAD_REQUEST,
         )
+    
+    # Restaurant
+    # @action(
+    #     methods=['post'],
+    #     detail=True,
+    #     url_path='create-restaurant',
+    #     url_name='create-restaurant',
+    #     permission_classes=[IsAuthenticated,],
+    # )
+    # def create_restaurant(self, request: DRFRequest, pk: int = None, *args: Any, **kwargs: Any) -> DRFResponse:
+    #     """
+    #     Create a restaurant for the user.
+
+    #     Parameters:
+    #         request: 
+    #             DRFRequest: 
+    #                 name: Name of the restaurant.
+    #                 description: Description of the restaurant.
+    #                 address: Address of the restaurant.
+    #                 address_link: Link to the restaurant's address.
+    #         pk: 
+    #             int: The ID of the user creating the restaurant.
+    #         *args: Additional positional arguments.
+    #         **kwargs: Additional keyword arguments.
+    #     Returns:
+    #         DRFResponse: A response indicating the result of the restaurant creation.
+    #     """
+    #     user = CustomUser.objects.filter(id=pk).first()
+    #     if not user:
+    #         return DRFResponse(
+    #             data={"detail": "User not found."},
+    #             status=HTTP_400_BAD_REQUEST,
+    #         )
+        
+    #     serializer: UserSerializer = UserSerializer(user)
+    #     restaurant_serializer: RestaurantCreateSerializer = RestaurantCreateSerializer(data=request.data)
+    #     if not restaurant_serializer.is_valid():
+    #         return DRFResponse(
+    #             data=restaurant_serializer.errors,
+    #             status=HTTP_400_BAD_REQUEST,
+    #         )
+    #     return DRFResponse(
+    #         data=serializer.data,
+    #         status=HTTP_201_CREATED,
+    #     )

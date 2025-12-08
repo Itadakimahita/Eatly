@@ -28,6 +28,8 @@ urlpatterns = [
 
     # User app
     path('api/user/', view=include('apps.user.urls')),
+    # Restaurant app
+    path('api/restaurant/', view=include('apps.restaurant.urls')),
 
     # Documentation - Swagger / Redoc
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

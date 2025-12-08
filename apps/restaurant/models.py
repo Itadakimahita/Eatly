@@ -7,11 +7,11 @@ from django.db import models
 from django.utils import timezone
 from django.db.models import QuerySet
 
-from apps.abstract.models import AbstractBaseModel
+from apps.abstract.models import AbstractBaseModel, AbstractSoftDeleteModel
 from apps.user.models import CustomUser as User
 
 
-class Restaurant(AbstractBaseModel):
+class Restaurant(AbstractBaseModel, AbstractSoftDeleteModel):
     """Restaurant model."""
 
     name: str = models.CharField(max_length=255)
