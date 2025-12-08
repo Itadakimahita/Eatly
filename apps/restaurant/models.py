@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.db.models import QuerySet
 
 from apps.abstract.models import AbstractBaseModel
-from apps.user.models import User
+from apps.user.models import CustomUser as User
 
 
 class Restaurant(AbstractBaseModel):

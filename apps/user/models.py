@@ -29,7 +29,7 @@ class CustomUserManager(BaseUserManager):
         name: str,
         password: str,
         **kwargs: dict[str, Any],
-    ) -> 'User':
+    ) -> 'CustomUser':
         """Get user instance."""
         if not email:
             raise ValidationError(
@@ -40,7 +40,7 @@ class CustomUserManager(BaseUserManager):
                 message="Full name name is required.", code="name_empty"
             )
 
-        new_user: 'User' = self.model(
+        new_user: 'CustomUser' = self.model(
             email=self.normalize_email(email),
             name=name,
             password=password,
@@ -54,9 +54,9 @@ class CustomUserManager(BaseUserManager):
         name: str,
         password: str,
         **kwargs: dict[str, Any],
-    ) -> 'User':
+    ) -> 'CustomUser':
         """Create Custom user. TODO where is this used?"""
-        new_user: 'User' = self.__obtain_user_instance(
+        new_user: 'CustomUser' = self.__obtain_user_instance(
             email=email,
             name=name,
             password=password,
@@ -72,9 +72,9 @@ class CustomUserManager(BaseUserManager):
         name: str,
         password: str,
         **kwargs: dict[str, Any],
-    ) -> 'User':
+    ) -> 'CustomUser':
         """Create super user. Used by manage.py createsuperuser."""
-        new_user: 'User' = self.__obtain_user_instance(
+        new_user: 'CustomUser' = self.__obtain_user_instance(
             email=email,
             name=name,
             password=password,
@@ -87,10 +87,10 @@ class CustomUserManager(BaseUserManager):
         return new_user
 
 
-class User(AbstractBaseModel, AbstractBaseUser, PermissionsMixin):
+class CustomUser(AbstractBaseModel, AbstractBaseUser, PermissionsMixin):
     """User model representing customers and restaurant owners."""
 
-    ROLE_CHOICES: ClassVar[list[tuple[str, str]]] = [
+    ROLE_CHOICES = [
         ('customer', 'Customer'),
         ('owner', 'Owner'),
     ]
@@ -118,7 +118,9 @@ class User(AbstractBaseModel, AbstractBaseUser, PermissionsMixin):
     )
     role: str = CharField(
         max_length=20, 
-        choices=ROLE_CHOICES
+        choices=ROLE_CHOICES,
+        default='customer',
+        verbose_name="User role",
     )
     
     # True iff the user is part of the corporoom team, allowing them to access the admin panel

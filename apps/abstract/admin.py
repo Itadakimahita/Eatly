@@ -10,7 +10,7 @@ from unfold.admin import ModelAdmin
 import unfold
 
 # Project models
-from apps.user.models import User
+from apps.user.models import CustomUser as User
 from apps.restaurant.models import Restaurant, Category, RestaurantCategory, DeliveryLink
 from apps.services.models import Post, Comment, UserLike, UserSubscription, Notification
 

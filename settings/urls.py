@@ -19,13 +19,15 @@ from django.conf.urls.static import static
 # Project modules
 
 
-
 urlpatterns = [
     path('admin/', admin.site.urls),
     # JWT Authentication
     path('api/auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/auth/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+
+    # User app
+    path('api/user/', view=include('apps.user.urls')),
 
     # Documentation - Swagger / Redoc
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

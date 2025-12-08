@@ -9,7 +9,7 @@ from django.db.models import QuerySet
 
 from apps.abstract.models import AbstractBaseModel
 from apps.restaurant.models import Restaurant
-from apps.user.models import User
+from apps.user.models import CustomUser as User
 
 
 class Post(AbstractBaseModel):
