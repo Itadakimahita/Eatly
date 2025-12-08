@@ -394,6 +394,7 @@ class RestaurantViewSet(ViewSet):
     
     @action(
         methods=['post'],
+        detail=False,
         url_name='add-delivery',
         url_path='add-delivery',
         permission_classes=[IsAuthenticated, IsRestaurantOwner],
@@ -451,6 +452,7 @@ class RestaurantViewSet(ViewSet):
     
     @action(
         methods=['post'],
+        detail=False,
         url_name='remove-delivery',
         url_path='remove-delivery',
         permission_classes=[IsAuthenticated, IsRestaurantOwner],
