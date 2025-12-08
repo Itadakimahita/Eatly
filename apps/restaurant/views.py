@@ -22,7 +22,7 @@ from rest_framework.status import (
 from rest_framework.decorators import action
 
 # Restaurant modules
-from apps.restaurant.models import Restaurant
+from apps.restaurant.models import DeliveryLink, Restaurant
 from apps.user.entities.role_entity import UserRoleEntity
 from apps.user.models import CustomUser
 from apps.restaurant.permissions import IsRestaurantOwner
@@ -391,3 +391,114 @@ class RestaurantViewSet(ViewSet):
             {"detail": "Categories unassigned successfully."},
             status=HTTP_200_OK,
         )
+    
+    @action(
+        methods=['post'],
+        url_name='add-delivery',
+        url_path='add-delivery',
+        permission_classes=[IsAuthenticated, IsRestaurantOwner],
+    )
+    def add_delivery_method(
+        self,
+        request: DRFRequest,
+        pk: int = None,
+        *args: Any,
+        **kwargs: Any
+    ) -> DRFResponse:
+        """
+        Add a delivery method to the restaurant owned by the authenticated user.
+
+        Parameters:
+            request: DRFRequest
+                The request object containing 'delivery_ids' in data.
+            pk: int
+                The id of the restaurant.
+            *args: list
+                Additional positional arguments.
+            **kwargs: dict
+                Additional keyword arguments.
+
+        Returns:
+            DRFResponse
+                A response indicating success or failure.
+        """
+        restaurant = self.get_object()
+    
+        user: CustomUser = request.user
+        delivery_ids: list[int] = request.data.get('delivery_ids', [])
+
+        if not delivery_ids:
+            return DRFResponse(
+                {"detail": "Delivery IDs are required."},
+                status=HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            restaurant: Restaurant = Restaurant.objects.get(owner=user)
+        except Restaurant.DoesNotExist:
+            return DRFResponse(
+                {"detail": "Restaurant not found for the user."},
+                status=HTTP_404_NOT_FOUND,
+            )
+
+        restaurant.delivery_methods.set(delivery_ids)
+        restaurant.save()
+
+        return DRFResponse(
+            {"detail": "Delivery methods assigned successfully."},
+            status=HTTP_200_OK,
+        )
+    
+    @action(
+        methods=['post'],
+        url_name='remove-delivery',
+        url_path='remove-delivery',
+        permission_classes=[IsAuthenticated, IsRestaurantOwner],
+    )
+    def remove_delivery_methods(
+        self,
+        request: DRFRequest,
+        *args: Any,
+        **kwargs: Any
+    ) -> DRFResponse:
+        """
+        Unassign delivery methods from the restaurant owned by the authenticated user.
+
+        Parameters:
+            request: DRFRequest
+                The request object containing 'delivery_ids' in data.
+            *args: list
+                Additional positional arguments.
+            **kwargs: dict
+                Additional keyword arguments.
+
+        Returns:
+            DRFResponse
+                A response indicating success or failure.
+        """
+
+        user: CustomUser = request.user
+        delivery_ids: list[int] = request.data.get('delivery_ids', [])
+
+        if not delivery_ids:
+            return DRFResponse(
+                {"detail": "Delivery IDs are required."},
+                status=HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            restaurant: Restaurant = Restaurant.objects.get(owner=user)
+        except Restaurant.DoesNotExist:
+            return DRFResponse(
+                {"detail": "Restaurant not found for the user."},
+                status=HTTP_404_NOT_FOUND,
+            )
+
+        restaurant.delivery_methods.remove(*delivery_ids)
+        restaurant.save(update_fields=['delivery_methods'])
+
+        return DRFResponse(
+            {"detail": "Delivery methods unassigned successfully."},
+            status=HTTP_200_OK,
+        )
+
