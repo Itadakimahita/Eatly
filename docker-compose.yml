@@ -1,0 +1,14 @@
+version: "3.8"
+services:
+  web:
+    build: .
+    command: /code/entrypoint.sh
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/code
+    env_file:
+      - .env
+    environment:
+      - EATLY_ENV_ID=local
+    depends_on: []

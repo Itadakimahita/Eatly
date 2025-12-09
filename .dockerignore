@@ -1,0 +1,13 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.env
+.env.local
+.env.prod
+venv
+build
+dist
+*.sqlite3
+node_modules
+.git

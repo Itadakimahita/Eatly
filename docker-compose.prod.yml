@@ -1,0 +1,27 @@
+version: "3.8"
+services:
+  web:
+    build: .
+    command: /code/entrypoint.sh
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - EATLY_ENV_ID=prod
+    depends_on:
+      - db
+    restart: always
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-eatly}
+      POSTGRES_USER: ${POSTGRES_USER:-eatly}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  postgres_data:
