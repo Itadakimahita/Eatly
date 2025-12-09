@@ -1,57 +1,67 @@
-# Python modules
 from typing import Any
 from rest_framework_simplejwt.tokens import RefreshToken
 
-# Django 
+from django.contrib.auth import get_user_model
 from django.contrib.auth import get_user_model
 
-# Django REST Framework
 from rest_framework.viewsets import ViewSet
 from rest_framework.request import Request as DRFRequest
 from rest_framework.response import Response as DRFResponse
-from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST, HTTP_405_METHOD_NOT_ALLOWED, HTTP_201_CREATED, HTTP_205_RESET_CONTENT
+from rest_framework.status import (
+    HTTP_200_OK,
+    HTTP_400_BAD_REQUEST,
+    HTTP_201_CREATED,
+    HTTP_205_RESET_CONTENT,
+)
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import action
 
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
+
 from apps.restaurant.serializers import RestaurantCreateSerializer
 from apps.user.models import CustomUser
-from apps.user.serializers import UserListSerializer, UserLoginSerializer, UserRegisterSerializer, UserLoginResponseSerializer, UserSerializer
+from apps.user.serializers import (
+    UserListSerializer,
+    UserLoginSerializer,
+    UserRegisterSerializer,
+    UserLoginResponseSerializer,
+    UserSerializer,
+)
+
 
 class UserViewSet(ViewSet):
     """ViewSet to manage user-related operations."""
 
-    permission_classes = [AllowAny, IsAuthenticated,]
+    permission_classes = [AllowAny]
 
+    # ----------------------- LOGIN -----------------------
+    @extend_schema(
+        tags=["User Authentication"],
+        summary="Login user",
+        description="Authenticate user and return JWT access & refresh tokens.",
+        request=UserLoginSerializer,
+        responses={HTTP_200_OK: UserLoginResponseSerializer},
+        examples=[
+            OpenApiExample(
+                "Login example",
+                value={"email": "user@example.com", "password": "123456"},
+            )
+        ],
+    )
     @action(
-        methods=['post'],
+        methods=["post"],
         detail=False,
-        url_path='login',
-        url_name='login',
-        permission_classes=[AllowAny,],
+        url_path="login",
+        url_name="login",
+        permission_classes=[AllowAny],
     )
     def login(self, request: DRFRequest, *args: Any, **kwargs: Any) -> DRFResponse:
-        """
-        Handle user login.
-
-        Parameters:
-            request: 
-                DRFRequest: 
-                    email: The user's email.
-                    password: The user's password.
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            DRFResponse: A response containing user data and JWT tokens upon successful login.
-        """
-
-        serializer: UserLoginSerializer = UserLoginSerializer(data=request.data)
-        
+        serializer = UserLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user: CustomUser = serializer.validated_data['user']
+        user = serializer.validated_data["user"]
 
-        refresh_token: RefreshToken = RefreshToken.for_user(user)
-        access_token: str = refresh_token.access_token
+        refresh_token = RefreshToken.for_user(user)
+        access_token = refresh_token.access_token
 
         response_serializer = UserLoginResponseSerializer(
             data={
@@ -63,42 +73,30 @@ class UserViewSet(ViewSet):
             }
         )
         response_serializer.is_valid(raise_exception=True)
+        return DRFResponse(response_serializer.data, HTTP_200_OK)
 
-        return DRFResponse(
-            data=response_serializer.data,
-            status=HTTP_200_OK,
-        )
-    
-    @action(
-        methods=['post'],
-        detail=False,
-        url_path='register',
-        url_name='register',
-        permission_classes=[AllowAny,],
+    # ----------------------- REGISTER -----------------------
+    @extend_schema(
+        tags=["User Authentication"],
+        summary="Register new user",
+        description="Create new user and return JWT tokens.",
+        request=UserRegisterSerializer,
+        responses={HTTP_201_CREATED: UserLoginResponseSerializer},
     )
-    def register(self, request: DRFRequest, *args: Any, **kwargs: Any) -> DRFResponse:
-        """
-        Handle user registration.
-        
-        Parameters:
-            request: 
-                DRFRequest: 
-                    name: Full name of the user.
-                    email: Email address of the user.
-                    password: Password for the user account.
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        Returns:
-            DRFResponse: A response containing user data and JWT tokens upon successful registration.
-        """
-        serializer: UserRegisterSerializer = UserRegisterSerializer(data=request.data)
+    @action(
+        methods=["post"],
+        detail=False,
+        url_path="register",
+        url_name="register",
+        permission_classes=[AllowAny],
+    )
+    def register(self, request: DRFRequest, *args, **kwargs) -> DRFResponse:
+        serializer = UserRegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
         user = serializer.save()
 
-        # JWT Token generation
-        refresh_token: RefreshToken = RefreshToken.for_user(user)
-        access_token: str = refresh_token.access_token
+        refresh_token = RefreshToken.for_user(user)
+        access_token = refresh_token.access_token
 
         response_serializer = UserLoginResponseSerializer(
             data={
@@ -110,147 +108,92 @@ class UserViewSet(ViewSet):
             }
         )
         response_serializer.is_valid(raise_exception=True)
+        return DRFResponse(response_serializer.data, HTTP_201_CREATED)
 
-        return DRFResponse(
-            data=response_serializer.data,
-            status=HTTP_201_CREATED,
-        )
-    
-    @action(
-        methods=['get'],
-        detail=False,
-        url_path='list',
-        url_name='list',
-        permission_classes=[IsAuthenticated,],
+    # ----------------------- LIST USERS -----------------------
+    @extend_schema(
+        tags=["User Management"],
+        summary="Get users list",
+        description="Returns a list of all registered users. Requires authentication.",
+        responses={HTTP_200_OK: UserListSerializer},
     )
-    def users(self, *args: Any, **kwargs: Any) -> DRFResponse:
-        """
-        List all users.
-        
-        Parameters:
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        Returns:
-            DRFResponse: A response containing the list of users.
-        """ 
-        
+    @action(
+        methods=["get"],
+        detail=False,
+        url_path="list",
+        url_name="list",
+        permission_classes=[IsAuthenticated],
+    )
+    def users(self, *args, **kwargs) -> DRFResponse:
         users = CustomUser.objects.all()
         serializer = UserListSerializer({"users": users})
-        return DRFResponse(serializer.data, status=HTTP_200_OK)
+        return DRFResponse(serializer.data, HTTP_200_OK)
 
-    
-    @action(
-        methods=['post'],
-        detail=False,
-        url_path='logout',
-        url_name='logout',
-        permission_classes=[IsAuthenticated,],
+    # ----------------------- LOGOUT -----------------------
+    @extend_schema(
+        tags=["User Authentication"],
+        summary="Logout user",
+        description="Blacklists the refresh token.",
+        request={
+            "type": "object",
+            "properties": {"refresh": {"type": "string"}},
+            "required": ["refresh"],
+        },
+        responses={
+            HTTP_205_RESET_CONTENT: OpenApiExample(
+                "Logout success", value={"detail": "Successfully logged out."}
+            ),
+            HTTP_400_BAD_REQUEST: OpenApiExample(
+                "Invalid refresh", value={"detail": "Invalid or expired token."}
+            ),
+        },
     )
-    def logout(self, request: DRFRequest, *args: Any, **kwargs: Any) -> DRFResponse:
-        """
-        Handle user logout by blacklisting the refresh token.
-
-        Parameters:
-            request: 
-                DRFRequest: 
-                    refresh: The refresh token to be blacklisted.
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            DRFResponse: A response indicating successful logout.
-        """
-
-        refresh_token = request.data.get('refresh')
+    @action(
+        methods=["post"],
+        detail=False,
+        url_path="logout",
+        url_name="logout",
+        permission_classes=[IsAuthenticated],
+    )
+    def logout(self, request: DRFRequest, *args, **kwargs) -> DRFResponse:
+        refresh_token = request.data.get("refresh")
 
         if not refresh_token:
             return DRFResponse(
-                data={"detail": "Refresh token is required."},
-                status=HTTP_400_BAD_REQUEST,
+                {"detail": "Refresh token is required."},
+                HTTP_400_BAD_REQUEST,
             )
 
         try:
             token = RefreshToken(refresh_token)
             token.blacklist()
-        except Exception as e:
+        except Exception:
             return DRFResponse(
-                data={"detail": "Invalid or expired token."},
-                status=HTTP_400_BAD_REQUEST,
+                {"detail": "Invalid or expired token."},
+                HTTP_400_BAD_REQUEST,
             )
 
-        return DRFResponse(
-            data={"detail": "Successfully logged out."},
-            status=HTTP_205_RESET_CONTENT,
-        )
-    
-    def retrieve(self, request: DRFRequest, pk: int = None, *args: Any, **kwargs: Any) -> DRFResponse:
-        """
-        Retrieve user details by ID.
+        return DRFResponse({"detail": "Successfully logged out."}, HTTP_205_RESET_CONTENT)
 
-        Parameters:
-            request: 
-                DRFRequest: The incoming request.
-            id: 
-                int: The ID of the user to retrieve.
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
-        Returns:
-            DRFResponse: A response containing user details if found, else an error message.
-        """
-
+    # ----------------------- RETRIEVE -----------------------
+    @extend_schema(
+        tags=["User Management"],
+        summary="Get single user",
+        description="Retrieve user details by ID.",
+        parameters=[
+            OpenApiParameter("id", int, location="path", description="User ID"),
+        ],
+        responses={
+            200: UserSerializer,
+            400: OpenApiExample("User not found", value={"detail": "User not found."}),
+        },
+    )
+    def retrieve(
+        self, request: DRFRequest, pk: int = None, *args, **kwargs
+    ) -> DRFResponse:
         user = CustomUser.objects.filter(id=pk).first()
         if user:
-            serializer: UserSerializer = UserSerializer(user)
-            return DRFResponse(
-                data=serializer.data,
-                status=HTTP_200_OK,
-            )
-        return DRFResponse(
-            data={"detail": "User not found."},
-            status=HTTP_400_BAD_REQUEST,
-        )
-    
-    # Restaurant
-    # @action(
-    #     methods=['post'],
-    #     detail=True,
-    #     url_path='create-restaurant',
-    #     url_name='create-restaurant',
-    #     permission_classes=[IsAuthenticated,],
-    # )
-    # def create_restaurant(self, request: DRFRequest, pk: int = None, *args: Any, **kwargs: Any) -> DRFResponse:
-    #     """
-    #     Create a restaurant for the user.
+            serializer = UserSerializer(user)
+            return DRFResponse(serializer.data, HTTP_200_OK)
 
-    #     Parameters:
-    #         request: 
-    #             DRFRequest: 
-    #                 name: Name of the restaurant.
-    #                 description: Description of the restaurant.
-    #                 address: Address of the restaurant.
-    #                 address_link: Link to the restaurant's address.
-    #         pk: 
-    #             int: The ID of the user creating the restaurant.
-    #         *args: Additional positional arguments.
-    #         **kwargs: Additional keyword arguments.
-    #     Returns:
-    #         DRFResponse: A response indicating the result of the restaurant creation.
-    #     """
-    #     user = CustomUser.objects.filter(id=pk).first()
-    #     if not user:
-    #         return DRFResponse(
-    #             data={"detail": "User not found."},
-    #             status=HTTP_400_BAD_REQUEST,
-    #         )
-        
-    #     serializer: UserSerializer = UserSerializer(user)
-    #     restaurant_serializer: RestaurantCreateSerializer = RestaurantCreateSerializer(data=request.data)
-    #     if not restaurant_serializer.is_valid():
-    #         return DRFResponse(
-    #             data=restaurant_serializer.errors,
-    #             status=HTTP_400_BAD_REQUEST,
-    #         )
-    #     return DRFResponse(
-    #         data=serializer.data,
-    #         status=HTTP_201_CREATED,
-    #     )
+        return DRFResponse({"detail": "User not found."}, HTTP_400_BAD_REQUEST)

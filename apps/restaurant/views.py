@@ -20,6 +20,9 @@ from rest_framework.status import (
     HTTP_404_NOT_FOUND,
 )
 from rest_framework.decorators import action
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+
 
 # Restaurant modules
 from apps.restaurant.models import DeliveryLink, Restaurant
@@ -42,6 +45,22 @@ class RestaurantViewSet(ViewSet):
     authentication_classes = (JWTAuthentication,)
     permission_classes = (IsAuthenticated, IsRestaurantOwner,)
     serializer_class = RestaurantBaseSerializer
+    
+    category_ids_param = openapi.Schema(
+    type=openapi.TYPE_ARRAY,
+    items=openapi.Items(type=openapi.TYPE_INTEGER)
+    )
+
+    delivery_ids_param = openapi.Schema(
+        type=openapi.TYPE_ARRAY,
+        items=openapi.Items(type=openapi.TYPE_INTEGER)
+    )
+
+    image_url_param = openapi.Schema(
+        type=openapi.TYPE_STRING,
+        description="Public URL of restaurant image"
+    )
+
 
     def get_permissions(self):
         """
@@ -74,6 +93,10 @@ class RestaurantViewSet(ViewSet):
         """
         serializer.save(owner=self.request.user)
 
+    @swagger_auto_schema(
+        operation_summary="Get all restaurants",
+        responses={HTTP_200_OK: RestaurantListSerializer(many=True)}
+    )
     @action(
         methods=['get'],
         detail=False,
@@ -110,6 +133,19 @@ class RestaurantViewSet(ViewSet):
         )
         return DRFResponse(serializer.data, status=HTTP_200_OK)
     
+    @swagger_auto_schema(
+        operation_summary="Get restaurants of specific owner",
+        manual_parameters=[
+            openapi.Parameter(
+                "pk",
+                openapi.IN_QUERY,
+                description="Owner ID",
+                type=openapi.TYPE_INTEGER
+            ),
+        ],
+        responses={HTTP_200_OK: RestaurantListSerializer(many=True),
+                   HTTP_404_NOT_FOUND: "Owner not found"}
+    )
     @action(
         methods=['get'],
         detail=False,
@@ -149,7 +185,11 @@ class RestaurantViewSet(ViewSet):
         )
         return DRFResponse(serializer.data, status=HTTP_200_OK)
         
-    
+    @swagger_auto_schema(
+        operation_summary="Create restaurant",
+        request_body=RestaurantCreateSerializer,
+        responses={HTTP_201_CREATED: RestaurantBaseSerializer}
+    )
     @action(
         methods=['post'],
         detail=False,
@@ -171,6 +211,13 @@ class RestaurantViewSet(ViewSet):
 
         return DRFResponse(RestaurantBaseSerializer(restaurant).data, status=HTTP_201_CREATED)
     
+    @swagger_auto_schema(
+        operation_summary="Get restaurant by ID",
+        responses={
+            HTTP_200_OK: RestaurantBaseSerializer,
+            HTTP_404_NOT_FOUND: "Restaurant not found"
+        }
+    )
     def retrieve(self, request: DRFRequest, pk: int=None, *args: tuple[Any, ...], **kwargs: dict[str, Any]) -> DRFResponse:
         """
         Handle GET requests to list Restaurants of a specific owner.
@@ -201,6 +248,13 @@ class RestaurantViewSet(ViewSet):
         serializer = RestaurantBaseSerializer(restaurant)
         return DRFResponse(serializer.data, status=HTTP_200_OK)
 
+    @swagger_auto_schema(
+        operation_summary="Delete restaurant",
+        responses={
+            HTTP_204_NO_CONTENT: "Restaurant deleted",
+            HTTP_404_NOT_FOUND: "Restaurant not found"
+        }
+    )
     def destroy(self, request, pk=None, *args, **kwargs):
         try:
             restaurant = Restaurant.objects.get(pk=pk)
@@ -212,7 +266,13 @@ class RestaurantViewSet(ViewSet):
 
         restaurant.delete()
         return DRFResponse(status=HTTP_204_NO_CONTENT)
-    
+
+    @swagger_auto_schema(
+        operation_summary="Update restaurant partially",
+        request_body=RestaurantBaseSerializer,
+        responses={HTTP_200_OK: RestaurantBaseSerializer,
+                   HTTP_404_NOT_FOUND: "Restaurant not found"}
+    )    
     def partial_update(self, request, pk=None, *args, **kwargs):
         try:
             restaurant = Restaurant.objects.get(pk=pk)
@@ -230,6 +290,15 @@ class RestaurantViewSet(ViewSet):
 
         return DRFResponse(RestaurantBaseSerializer(restaurant).data, status=HTTP_200_OK)
     
+    @swagger_auto_schema(
+        operation_summary="Set restaurant image",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"image_url": image_url_param},
+            required=["image_url"]
+        ),
+        responses={HTTP_200_OK: "Image updated"}
+    )
     @action(
         methods=['get'],
         detail=False,
@@ -284,6 +353,15 @@ class RestaurantViewSet(ViewSet):
             status=HTTP_200_OK,
         )
 
+    @swagger_auto_schema(
+        operation_summary="Assign categories to restaurant",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"category_ids": category_ids_param},
+            required=["category_ids"]
+        ),
+        responses={HTTP_200_OK: "Categories assigned"}
+    )
     @action(
         methods=['get'],
         detail=False,
@@ -338,6 +416,15 @@ class RestaurantViewSet(ViewSet):
             status=HTTP_200_OK,
         )
     
+    @swagger_auto_schema(
+        operation_summary="Unassign categories from restaurant",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"category_ids": category_ids_param},
+            required=["category_ids"]
+        ),
+        responses={HTTP_200_OK: "Categories unassigned"}
+    )
     @action(
         methods=['post'],
         detail=False,

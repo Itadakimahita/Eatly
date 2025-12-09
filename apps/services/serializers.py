@@ -64,7 +64,7 @@ class PostDetailSerializer(serializers.ModelSerializer):
             'image_url',
             'created_at',
             'likes_count',
-            'comments_count',
+            'comments',
         )
 
     def get_comments (self, obj):
