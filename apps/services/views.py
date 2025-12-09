@@ -156,7 +156,7 @@ class CommentViewSet(ModelViewSet):
 
 class UserLikeViewSet(ModelViewSet):
     """
-    Работа с лайками (обычно для админки/отладки): list user's likes, create, destroy.
+    Работалайками (обычно для админки/отладки): list user's likes, create, destroy.
     """
     queryset = UserLike.objects.all().select_related("user", "discount_post")
     serializer_class = UserLikeSerializer

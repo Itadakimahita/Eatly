@@ -14,10 +14,11 @@ from apps.user.models import CustomUser as User
 class Restaurant(AbstractBaseModel, AbstractSoftDeleteModel):
     """Restaurant model."""
 
-    name: str = models.CharField(max_length=255)
+    MAX_LENGTH: int = 255
+    name: str = models.CharField(max_length=MAX_LENGTH)
     description: Optional[str] = models.TextField(blank=True, null=True)
     image_url: Optional[str] = models.URLField(blank=True, null=True)
-    address: Optional[str] = models.CharField(max_length=255, blank=True, null=True)
+    address: Optional[str] = models.CharField(max_length=MAX_LENGTH, blank=True, null=True)
     address_link: Optional[str] = models.URLField(blank=True, null=True)
     owner: User = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='restaurants'
@@ -36,7 +37,8 @@ class Restaurant(AbstractBaseModel, AbstractSoftDeleteModel):
 class Category(models.Model):
     """Food category model."""
 
-    name: str = models.CharField(max_length=100, unique=True)
+    NAME_MAX_LENGTH: int = 100
+    name: str = models.CharField(max_length=NAME_MAX_LENGTH, unique=True)
     description: Optional[str] = models.TextField(blank=True, null=True)
     icon_url: Optional[str] = models.URLField(blank=True, null=True)
     created_at: timezone.datetime = models.DateTimeField(default=timezone.now)
