@@ -35,36 +35,32 @@ from apps.services.serializers import (
 from apps.services.permissions import IsOwnerOrReadOnly, IsSubscriptionOwner
 from apps.user.models import CustomUser
 
-class PostViewSet(ModelViewSet):
+class PostViewSet(ViewSet):
     """
     CRUD для Post + дополнительные экшены:
       - /posts/{pk}/like/  (POST -> like, DELETE -> unlike)
       - /posts/{pk}/comments/ (GET, POST)
     """
-    queryset: QuerySet[Post] = Post.objects.all()
     authentication_classes = (JWTAuthentication,)
-    permission_classes = (IsAuthenticated,)  # методы чтения могут менять в get_permissions
-    serializer_class = PostListSerializer
+    permission_classes = (IsAuthenticated,)
 
     def get_permissions(self):
         if self.action in ("list", "retrieve"):
             return [AllowAny()]
-        if self.action in ("create",):
+        if self.action=="create":
             return [IsAuthenticated()]
-        # update/destroy/partial_update -> check owner or restaurant owner
         return [IsAuthenticated(), IsOwnerOrReadOnly()]
 
-    def get_queryset(self):
-        qs = Post.objects.all().select_related("restaurant").annotate(
-            likes_count=Count("liked_by", distinct=True),
-            comments_count=Count("comments", distinct=True),
-        ).order_by("-created_at")
-        # можно фильтровать по ресторану: ?restaurant=1
+    def get_queryset(self) -> QuerySet[Post]:
+        qs=Post.objects.all().select_related("restaurant").annotate(
+            likes_count = Count("liked_by", distinct=True),
+            comments_count = Count("comments", distinct=True),).order_by("-created_at")
+
         restaurant_id = self.request.query_params.get("restaurant")
         if restaurant_id:
             qs = qs.filter(restaurant_id=restaurant_id)
         return qs
-
+    
     def get_serializer_class(self):
         if self.action == "list":
             return PostListSerializer
@@ -73,11 +69,45 @@ class PostViewSet(ModelViewSet):
         if self.action in ("create", "update", "partial_update"):
             return PostCreateUpdateSerializer
         return PostListSerializer
-
-    def perform_create(self, serializer):
-        # сохраняем пост как есть; при необходимости можно проверять, что пользователь — owner ресторана
+    
+    def list(self, request):
+        qs = self.get_queryset()
+        serializer = self.get_serializer_class()(qs, many=True)
+        return DRFResponse(serializer.data, status=HTTP_200_OK)
+    
+    def retrieve(self, request, pk=None):
+        post = get_object_or_404(self.get_queryset(), pk=pk)
+        serializer = self.get_serializer_class()(post)
+        return DRFResponse(serializer.data, status=HTTP_200_OK)
+    
+    def create(self, request):
+        serializer = self.get_serializer_class()(data=request.data, context={"request": request})
         serializer.save()
+        serializer.is_valid(raise_exception=True)
+        return DRFResponse(serializer.data, status=HTTP_201_CREATED)
+    
+    def update(self, request, pk=None):
+        post = get_object_or_404(Post, pk=pk)
+        self.check_object_permissions(request, post)
+        serializer = self.get_serializer_class()(post, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return DRFResponse(serializer.data, status=HTTP_200_OK)
 
+    def partial_update(self, request, pk=None):
+        post = get_object_or_404(Post, pk=pk)
+        self.check_object_permissions(request, post)
+        serializer = self.get_serializer_class()(post, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return DRFResponse(serializer.data, status=HTTP_200_OK)
+    
+    def destroy(self, request, pk=None):
+        post = get_object_or_404(Post, pk=pk)
+        self.check_object_permissions(request, post)
+        post.delete()
+        return DRFResponse(status=HTTP_204_NO_CONTENT)
+    
     @action(
         methods=["post", "delete"],
         detail=True,
@@ -85,40 +115,43 @@ class PostViewSet(ModelViewSet):
         url_name="like",
         permission_classes=[IsAuthenticated],
     )
-    def like(self, request: DRFRequest, pk: int = None, *args: Any, **kwargs: Any) -> DRFResponse:
-        """
-        POST -> поставить лайк (id поста в pk)
-        DELETE -> убрать лайк текущего пользователя
-        """
-        user: CustomUser = request.user
+    def like(self, request, pk=None, *args, **kwargs):
+        user = request.user
         post = get_object_or_404(Post, pk=pk)
 
         if request.method == "POST":
-            # создать лайк если не существует
-            like, created = UserLike.objects.get_or_create(user=user, discount_post=post)
+            like, created = UserLike.objects.get_or_create(
+                user=user, discount_post=post
+            )
             if created:
-                serializer = UserLikeSerializer(like)
-                return DRFResponse(serializer.data, status=HTTP_201_CREATED)
-            return DRFResponse({"detail": "Already liked."}, status=HTTP_400_BAD_REQUEST)
+                return DRFResponse(
+                    UserLikeSerializer(like).data,
+                    status=HTTP_201_CREATED,
+                )
+            return DRFResponse(
+                {"detail": "Already liked."},
+                status=HTTP_400_BAD_REQUEST,
+            )
 
-        # DELETE
-        deleted, _ = UserLike.objects.filter(user=user, discount_post=post).delete()
+        deleted, _ = UserLike.objects.filter(
+            user=user, discount_post=post
+        ).delete()
+
         if deleted:
             return DRFResponse(status=HTTP_204_NO_CONTENT)
-        return DRFResponse({"detail": "Like not found."}, status=HTTP_404_NOT_FOUND)
+        return DRFResponse(
+            {"detail": "Like not found."},
+            status=HTTP_404_NOT_FOUND,
+        )
 
     @action(
         methods=["get", "post"],
         detail=True,
         url_path="comments",
         url_name="comments",
-        permission_classes=[AllowAny],  # GET доступен всем, POST требует авторизации (см внутри)
+        permission_classes=[AllowAny],
     )
-    def comments(self, request: DRFRequest, pk: int = None, *args: Any, **kwargs: Any) -> DRFResponse:
-        """
-        GET -> список комментариев к посту
-        POST -> добавить комментарий (auth required)
-        """
+    def comments(self, request, pk=None, *args, **kwargs):
         post = get_object_or_404(Post, pk=pk)
 
         if request.method == "GET":
@@ -126,23 +159,26 @@ class PostViewSet(ModelViewSet):
             serializer = CommentSerializer(qs, many=True)
             return DRFResponse(serializer.data, status=HTTP_200_OK)
 
-        # POST
         if not request.user or not request.user.is_authenticated:
-            return DRFResponse({"detail": "Authentication required."}, status=HTTP_401_UNAUTHORIZED)
+            return DRFResponse(
+                {"detail": "Authentication required."},
+                status=HTTP_401_UNAUTHORIZED,
+            )
 
         data = request.data.copy()
         data["post"] = pk
         serializer = CommentSerializer(data=data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         comment = serializer.save()
-        return DRFResponse(CommentSerializer(comment).data, status=HTTP_201_CREATED)
+        return DRFResponse(
+            CommentSerializer(comment).data,
+            status=HTTP_201_CREATED,
+        )
 
-class CommentViewSet(ModelViewSet):
+class CommentViewSet(ViewSet):
     """
     CRUD для Comment (редактировать/удалить может только автор)
     """
-    queryset = Comment.objects.all().select_related("user", "post")
-    serializer_class = CommentSerializer
     authentication_classes = (JWTAuthentication,)
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
 
@@ -151,56 +187,100 @@ class CommentViewSet(ModelViewSet):
             return [AllowAny()]
         return [IsAuthenticated(), IsOwnerOrReadOnly()]
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+    def get_queryset(self):
+        return Comment.objects.all().select_related("user", "post")
+    
+    def list(self, request):
+        qs = self.get_queryset()
+        serializer = CommentSerializer(qs, many=True)
+        return DRFResponse(serializer.data, status=HTTP_200_OK)
+    
+    def retrieve(self, request, pk=None):
+        comment = get_object_or_404(self.get_queryset(), pk=pk)
+        serializer = CommentSerializer(comment)
+        return DRFResponse(serializer.data, status=HTTP_200_OK)
+    
+    def create(self, request):
+        serializer = CommentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(user=request.user)
+        return DRFResponse(serializer.data, status=HTTP_201_CREATED)
+    
+    def update(self, request, pk=None):
+        comment = get_object_or_404(Comment, pk=pk)
+        self.check_object_permissions(request, comment)
+        serializer = CommentSerializer(comment, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return DRFResponse(serializer.data, status=HTTP_200_OK)
+    
+    def destroy(self, request, pk=None):
+        comment = get_object_or_404(Comment, pk=pk)
+        self.check_object_permissions(request, comment)
+        comment.delete()
+        return DRFResponse(status=HTTP_204_NO_CONTENT)
+        
 
-class UserLikeViewSet(ModelViewSet):
-    """
-    Работалайками (обычно для админки/отладки): list user's likes, create, destroy.
-    """
-    queryset = UserLike.objects.all().select_related("user", "discount_post")
-    serializer_class = UserLikeSerializer
+class UserLikeViewSet(ViewSet):
     authentication_classes = (JWTAuthentication,)
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
-        # если передан ?user= -> фильтр, иначе только свои
-        user_id = self.request.query_params.get("user")
-        if user_id:
-            return self.queryset.filter(user_id=user_id)
-        return self.queryset.filter(user=self.request.user)
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-
-class UserSubscriptionViewSet(ModelViewSet):
-    """
-    Подписки пользователя на рестораны.
-    - POST /subscriptions/  body: {"restaurant": id} -> подписаться
-    - DELETE /subscriptions/{pk}/ -> отписаться (только владелец подписки)
-    - GET list -> свои подписки
-    """
-    queryset = UserSubscription.objects.all().select_related("user", "restaurant")
-    serializer_class = UserSubscriptionSerializer
-    authentication_classes = (JWTAuthentication,)
-    permission_classes = (IsAuthenticated,)
-
-    def get_queryset(self):
-        # по умолчанию показываем подписки текущего юзера
-        qs = self.queryset
+        qs = UserLike.objects.all().select_related("user", "discount_post")
         user_id = self.request.query_params.get("user")
         if user_id:
             return qs.filter(user_id=user_id)
         return qs.filter(user=self.request.user)
 
-    def perform_create(self, serializer):
-        # уникальность enforced в модели через unique_together
-        serializer.save(user=self.request.user)
+    def list(self, request):
+        serializer = UserLikeSerializer(self.get_queryset(), many=True)
+        return DRFResponse(serializer.data)
+
+    def create(self, request):
+        serializer = UserLikeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(user=request.user)
+        return DRFResponse(serializer.data, status=HTTP_201_CREATED)
+
+    def destroy(self, request, pk=None):
+        like = get_object_or_404(UserLike, pk=pk, user=request.user)
+        like.delete()
+        return DRFResponse(status=HTTP_204_NO_CONTENT)
+
+
+class UserSubscriptionViewSet(ViewSet):
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (IsAuthenticated,)
 
     def get_permissions(self):
-        if self.action in ("list", "retrieve"):
-            return [IsAuthenticated()]
         if self.action in ("destroy",):
             return [IsAuthenticated(), IsSubscriptionOwner()]
         return [IsAuthenticated()]
+
+    def get_queryset(self):
+        qs = UserSubscription.objects.all().select_related("user", "restaurant")
+        user_id = self.request.query_params.get("user")
+        if user_id:
+            return qs.filter(user_id=user_id)
+        return qs.filter(user=self.request.user)
+
+    def list(self, request):
+        serializer = UserSubscriptionSerializer(self.get_queryset(), many=True)
+        return DRFResponse(serializer.data)
+
+    def retrieve(self, request, pk=None):
+        sub = get_object_or_404(self.get_queryset(), pk=pk)
+        serializer = UserSubscriptionSerializer(sub)
+        return DRFResponse(serializer.data)
+
+    def create(self, request):
+        serializer = UserSubscriptionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(user=request.user)
+        return DRFResponse(serializer.data, status=HTTP_201_CREATED)
+
+    def destroy(self, request, pk=None):
+        sub = get_object_or_404(UserSubscription, pk=pk)
+        self.check_object_permissions(request, sub)
+        sub.delete()
+        return DRFResponse(status=HTTP_204_NO_CONTENT)
