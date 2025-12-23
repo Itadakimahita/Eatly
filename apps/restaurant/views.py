@@ -510,7 +510,7 @@ class RestaurantViewSet(ViewSet):
             DRFResponse
                 A response indicating success or failure.
         """
-        restaurant = self.get_object()
+        #restaurant = self.get_object()
     
         user: CustomUser = request.user
         delivery_ids: list[int] = request.data.get('delivery_ids', [])
